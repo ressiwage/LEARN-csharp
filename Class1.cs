@@ -1,108 +1,121 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
+using System.Linq;
+
+
 namespace foresite
 {
 
-    public class KeyValueCollection<K, V> : IEnumerable<KeyValuePair<K, V>>
+    public class KeyValueCollection<K, V> : IEnumerable where K: struct, IComparable where V: struct, IComparable
     {
-        private List<KeyValuePair<K, V>> items = new List<KeyValuePair<K, V>>();
+        private K?[] keys = new K?[2];
+        private V?[] values = new V?[2];
+        private int _len = 2;
 
         public bool Add(K key, V value)
         {
-            int index = items.FindIndex(pair => EqualityComparer<K>.Default.Equals(pair.Key, key));
-            if (index == -1)
+            int index = Array.IndexOf(this.keys, key);
+            if (index < 0)
             {
-                items.Add(new KeyValuePair<K, V>(key, value));
+                if (this.keys.Count(v => v == null) == 0) { this.scale(); }
+                
+                int ind = Array.IndexOf(this.keys, default);
+                this.keys[ind] = key;
+                this.values[ind] = value;
                 return true;
+
             }
             else
             {
-                items[index] = new KeyValuePair<K, V>(key, value);
+                values[index] = value;
                 return false;
             }
         }
 
-        public V Remove(K key)
+        private void scale()
         {
-            int index = items.FindIndex(pair => EqualityComparer<K>.Default.Equals(pair.Key, key));
-            if (index != -1)
+            this._len *= 2;
+            Array.Resize(ref this.keys, this._len);
+            Array.Resize(ref this.values, this._len);
+        }
+
+        public V? Remove(K key) 
+        {
+            int index = Array.IndexOf(this.keys, key);
+            if (index < 0)
             {
-                V value = items[index].Value;
-                items.RemoveAt(index);
-                return value;
+                return null;
             }
-            throw new ArgumentException("The specified key does not exist in the collection");
+            V returned = (V)this.values[index];
+            this.keys[index] = default;
+            this.values[index] = default;
+            return returned;
+            
         }
 
         public void Clear()
         {
-            items.Clear();
+            this.keys = new K?[2];
+            this.values = new V?[2];
         }
 
         public K GetKeyByValue(V value)
         {
-            foreach (var pair in items)
-            {
-                if (EqualityComparer<V>.Default.Equals(pair.Value, value))
-                {
-                    return pair.Key;
-                }
-            }
-            throw new ArgumentException("The specified value does not exist in the collection");
+            int index = Array.IndexOf(this.values, value);
+            return (K)this.keys[index];
         }
 
         public V GetValueByKey(K key)
         {
-            foreach (var pair in items)
-            {
-                if (EqualityComparer<K>.Default.Equals(pair.Key, key))
-                {
-                    return pair.Value;
-                }
-            }
-            throw new ArgumentException("The specified key does not exist in the collection");
+            int index = Array.IndexOf(this.keys, key);
+            return (V)this.values[index];
         }
 
         public bool ContainsKey(K key)
         {
-            return items.Exists(pair => EqualityComparer<K>.Default.Equals(pair.Key, key));
+            return this.keys.Count<K?>(k => k==null) > 0;
         }
 
         public bool ContainsValue(V value)
         {
-            return items.Exists(pair => EqualityComparer<V>.Default.Equals(pair.Value, value));
+            return this.values.Count<V?>(v => v != null && v.Equals(value)) > 0;
         }
 
         public int Count()
         {
-            return items.Count;
+            return this.keys.Count(k => k!=null);
         }
 
-        public V[] GetAllValues()
+        public V?[] GetAllValues()
         {
-            V[] values = new V[items.Count];
-            for (int i = 0; i < items.Count; i++)
-            {
-                values[i] = items[i].Value;
-            }
-            return values;
+            return this.values.Where(v => v != null).ToArray<V?>();
         }
 
-        public K[] GetAllKeys()
+        public K?[] GetAllKeys()
         {
-            K[] keys = new K[items.Count];
-            for (int i = 0; i < items.Count; i++)
+            return this.keys.Where(k => k!= null).ToArray<K?>();
+        }
+
+        public V this[K index]
+        {
+            get
             {
-                keys[i] = items[i].Key;
+                // get the item for that index.
+                return GetValueByKey(index);
             }
-            return keys;
+            set
+            {
+                // set the item for this index. value will be of type Thing.
+                this.Add(index, value);
+            }
         }
 
         // Реализация интерфейса IEnumerable
-        public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
+        public IEnumerator GetEnumerator()
         {
-            return items.GetEnumerator();
+            return keys.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -114,9 +127,12 @@ namespace foresite
         public void PrintAllKeyValuePairs()
         {
             Console.WriteLine("dict {");
-            foreach (var pair in items)
+            for (int i=0; i<this._len; i++)
             {
-                Console.WriteLine($"    {pair.Key}:{pair.Value}");
+                if (this.keys[i] != null)
+                {
+                    Console.WriteLine($"    {this.keys[i]}:{this.values[i]}");
+                }
             }
             Console.WriteLine("}");
         }

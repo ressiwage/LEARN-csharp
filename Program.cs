@@ -22,7 +22,7 @@ namespace foresite
             Console.WriteLine(a.GetKeyByValue(4));
             Console.WriteLine(a.GetValueByKey(2));
             Console.WriteLine(a.ContainsKey(2));
-            Console.WriteLine(a.ContainsValue(4));
+            Console.WriteLine(a.ContainsValue(2));
             a.PrintAllKeyValuePairs();
             Console.WriteLine(string.Join(", ", a.GetAllKeys()));
             Console.WriteLine(string.Join(", ", a.GetAllValues()));
